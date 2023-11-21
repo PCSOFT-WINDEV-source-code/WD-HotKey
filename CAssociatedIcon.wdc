@@ -1,0 +1,157 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : CAssociatedIcon
+ major_version : 28
+ minor_version : 0
+ type : 4
+ description : ""
+ subtype : 0
+class :
+ identifier : 0x10ec1e580145a24f
+ internal_properties : CAAAAAgAAAB2/vstTMCJbS/hlxjFxirSqKvCUuv8YxgpWyl7S3iA
+ code_elements :
+  internal_properties : CAAAAAgAAABm4PVFe9JAHaoZ7pWrapr167xJBrSdz0axAnnnfYhOQaaZf6aFmw+87+hdnze0968KI3y7g0wMbri74fT3L3UE/39pGg==
+  type_code : 10
+  p_codes :
+   -
+     code : |1+
+      // This class is used to find out the icon of the program associated with a file
+      
+      // Define a SHFILEINFO
+      SHFILEINFO is Structure
+      	hIcon is int
+      	iIcon is 4-byte int
+      	dwAttributes is 8-byte int
+      	szDisplayName is string ASCIIZ on 255
+      	szTypeName is string ASCIIZ on 80
+      END
+      
+      // Declaration
+      CAssociatedIcon is Class
+      	m_shfi is SHFILEINFO 
+      END
+      
+      CONSTANT
+      	FILE_ATTRIBUTE_ARCHIVE = 0x20
+      	FILE_ATTRIBUTE_COMPRESSED = 0x800
+      	FILE_ATTRIBUTE_DIRECTORY = 0x10
+      	FILE_ATTRIBUTE_HIDDEN = 0x2
+      	FILE_ATTRIBUTE_NORMAL = 0x0
+      	FILE_ATTRIBUTE_READONLY = 0x1
+      	FILE_ATTRIBUTE_SYSTEM = 0x4
+      	SHGFI_ATTRIBUTES = 0x800
+      	SHGFI_DISPLAYNAME = 0x200
+      	SHGFI_EXETYPE = 0x2000
+      	SHGFI_ICON = 0x100
+      	SHGFI_ICONLOCATION = 0x1000
+      	SHGFI_LARGEICON = 0x0
+      	SHGFI_LINKOVERLAY = 0x8000
+      	SHGFI_OPENICON = 0x2
+      	SHGFI_PIDL = 0x8
+      	SHGFI_SELECTED = 0x10000
+      	SHGFI_SHELLICONSIZE = 0x4
+      	SHGFI_SMALLICON = 0x1
+      	SHGFI_SYSICONINDEX = 0x4000
+      	SHGFI_TYPENAME = 0x400
+      	SHFI_USEFILEATTRIBUTES = 0x10
+      END
+     type : 131072
+  procedures :
+   -
+     name : Constructor
+     procedure_id : 1219382962437923407
+     type_code : 27
+     code : |1+
+      Procedure Constructor()
+     type : 589824
+   -
+     name : Destructor
+     procedure_id : 1219382962437988943
+     type_code : 28
+     code : |1+
+      Procedure Destructor()
+      
+     type : 655360
+   -
+     name : GetIcon
+     internal_properties : CAAAAAgAAAAqzGz2xJr41DxqMyimzi/W3KkJ5uarQTY/NRgA7tPQ03pmWne55O6e/8JIAD5sAcDod6fgA6Y+9L488CoRgTy+rxHHwqYGRb7oUaoIbsUYgfYuBnYIAijK+GiFxH75FSlNBXBKqbAQwpVVAZpcH3lYMLqA9p33f9WlIcRtNTjE/BKCxZU12NIbzxHGWzw8zzy6TNInHcBuG/1Pzf4MDZUH51mutA9jLKtBmFyIHF3BIYebYCnmDjdIBmAjFn9XH4hc+RZ0f7O5pnJcHfilK/Z3SsmxbPb+UVKlZtC9bGusWH5+g93EH6c7Lv0dOzONJMjJjwx9sEY4rVfKg6s5ng==
+     procedure_id : 1219382962438054479
+     type_code : 12
+     code : |1+
+      Procedure GetIcon(LOCAL psPath is string, LOCAL psImageControl)
+      // psPath is the path of the object whose icon must be retrieved (can be a file, a directory or a disk)
+      // psImageControl is the image where the icon will be drawn
+      
+      // if a Web URL
+      IF Left(psPath,4)=“http” THEN
+      	// use a temporary html file
+      	psPath = fTempPath()+“http.html”
+      	fOpen(psPath, foCreate)
+      	
+      ELSE
+      	
+      	// If it is not a file on disk with full path
+      	IF fFileExist(psPath)=False THEN
+      		
+      		// If it is a directory
+      		IF fDirectoryExist(psPath)=True THEN
+      			// add the final \
+      		 	psPath = CompleteDir(psPath)
+      		
+      		ELSE 
+      			// let's try with the paths of Windows
+      			sEnvironment is string
+      			sDir is string
+      			i is int
+      			
+      			// retrieve the environment variable
+      			sEnvironment = SysEnvironment(“Path”)
+      			sEnvironment = ExtractString(sEnvironment, 2, “=”)
+      			
+      			// Browse the directories
+      			i=1; sDir = ExtractString(sEnvironment,i,“;”)
+      			WHILE sDir<>EOT AND sDir<>“”
+      				IF fFileExist(CompleteDir(sDir)+psPath)=True THEN
+      					psPath = CompleteDir(sDir)+psPath
+      					BREAK
+      				END				
+      				i++; sDir = ExtractString(sEnvironment,i,“;”)
+      			END
+      		END	
+      	END
+      END
+      
+      // Interrogate the associated icon
+      API(“Shell32”, “SHGetFileInfo”, psPath, ::FILE_ATTRIBUTE_NORMAL, &:m_shfi, Dimension(:m_shfi), ::SHGFI_ICON)// or ::SHFI_USEFILEATTRIBUTES)
+      
+      IF :m_shfi:hIcon<>0 THEN
+      	// Device Context of the control
+      	nDC is int
+      	nDC = dStartDrawing(psImageControl)
+      	
+      	IF nDC<>0 THEN
+      		// Draw the icon in an image control
+      		API(“User32”, “DrawIcon”, nDC, 0, 0, :m_shfi:hIcon)
+      
+      	ELSE
+      		Error(StringBuild(<§$0000§>,psImageControl), ErrorInfo())	
+      	END
+      END
+      
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+resources :
+ string_res :
+  identifier : 0x3d6de48d467c66a6
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+  strings :
+   -
+     text :
+      en-GB : Error while retrieving the Device Context of %1
+     index : 0
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ
